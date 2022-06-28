@@ -71,4 +71,27 @@ public class ElasticRestClientImpl implements ElasticRestClient {
             return new ArrayList<>();
         }
     }
+    
+    @Override
+    public <ElasticRawResultT extends ElasticRawResult, T> Page<T> ExecuteNativeQuery(String index, String query, Class<ElasticRawResultT> elasticRawResultTClass, Class<T> tClass, Pageable pageable) {
+        RestClient low = client.getLowLevelClient();
+        Request request = new Request(
+                "POST",
+                index + "/_search");
+        request.setJsonEntity(query);
+        try {
+            Response response = low.performRequest(request);
+            String json = EntityUtils.toString(response.getEntity());
+            ObjectMapper objectMapper = new ObjectMapper();
+            objectMapper.enable(DeserializationFeature.ACCEPT_EMPTY_STRING_AS_NULL_OBJECT);
+            objectMapper.enable(MapperFeature.ACCEPT_CASE_INSENSITIVE_VALUES);
+            objectMapper.enable(MapperFeature.ACCEPT_CASE_INSENSITIVE_ENUMS);
+            objectMapper.enable(MapperFeature.ACCEPT_CASE_INSENSITIVE_PROPERTIES);
+            ElasticRawResultT projection = objectMapper.readValue(json, elasticRawResultTClass);
+            List<T> resultList = projection.getItems();
+            return new PageImpl<>(resultList, pageable, 0);
+        } catch (Exception ex) {
+            return Page.empty();
+        }
+    }
 }
