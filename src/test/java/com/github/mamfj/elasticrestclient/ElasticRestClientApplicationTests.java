@@ -23,4 +23,4 @@ class ElasticRestClientApplicationTests {
     void contextLoads() {
     }
 
-}0
+}
