@@ -50,4 +50,25 @@ public class ElasticRestClientImpl implements ElasticRestClient {
         }
         return Page.empty();
     }
+    
+    public <ElasticRawResultT extends ElasticRawResult, T> List<T> ExecuteNativeQuery(String index, String query, Class<ElasticRawResultT> elasticRawResultTClass, Class<T> tClass) {
+        RestClient low = client.getLowLevelClient();
+        Request request = new Request(
+                "POST",
+                index + "/_search");
+        request.setJsonEntity(query);
+        try {
+            Response response = low.performRequest(request);
+            String json = EntityUtils.toString(response.getEntity());
+            ObjectMapper objectMapper = new ObjectMapper();
+            objectMapper.enable(DeserializationFeature.ACCEPT_EMPTY_STRING_AS_NULL_OBJECT);
+            objectMapper.enable(MapperFeature.ACCEPT_CASE_INSENSITIVE_VALUES);
+            objectMapper.enable(MapperFeature.ACCEPT_CASE_INSENSITIVE_ENUMS);
+            objectMapper.enable(MapperFeature.ACCEPT_CASE_INSENSITIVE_PROPERTIES);
+            ElasticRawResultT projection = objectMapper.readValue(json, elasticRawResultTClass);
+            return projection.getItems();
+        } catch (Exception ex) {
+            return new ArrayList<>();
+        }
+    }
 }
